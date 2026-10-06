@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperNumber Distributed Cluster</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 sm:p-8">
+  <div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black font-mono tracking-tight flex items-center gap-2">
+          <span>⚡</span> HyperNumber Cluster Node
+        </h1>
+        <p class="text-xs text-slate-400 mt-1">Multi-Phone Distributed Computing Engine</p>
+      </div>
+      <div id="modeSelector" class="flex gap-2">
+        <button onclick="setMode('master')" id="btnMaster" class="px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-xl shadow-md transition">Master Controller</button>
+        <button onclick="setMode('worker')" id="btnWorker" class="px-4 py-2 text-xs font-bold bg-slate-700 text-slate-300 rounded-xl hover:bg-slate-600 transition">Worker Compute Phone</button>
+      </div>
+    </div>
+
+    <!-- Connection Bar -->
+    <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-wrap items-center gap-3">
+      <input type="text" id="serverUrl" placeholder="ws://localhost:3001" class="flex-1 px-3 py-2 text-xs font-mono bg-slate-900 border border-slate-700 rounded-xl text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500" value="ws://localhost:3001">
+      <button onclick="connectWs()" id="btnConnect" class="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition">Connect</button>
+      <div id="connStatus" class="px-3 py-1.5 text-xs font-semibold bg-rose-950/80 text-rose-400 border border-rose-800/60 rounded-xl">Disconnected</div>
+    </div>
+
+    <!-- MASTER DASHBOARD -->
+    <div id="masterView" class="space-y-6">
+      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wide">Cluster Job Orchestrator</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Target Total Records</label>
+            <input type="number" id="targetTotal" value="1000000000" class="w-full px-3 py-2 text-sm font-mono bg-slate-900 border border-slate-700 rounded-xl text-slate-200">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Starting HyperNumber</label>
+            <input type="text" id="startingHn" value="L4A" class="w-full px-3 py-2 text-sm font-mono bg-slate-900 border border-slate-700 rounded-xl text-slate-200">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Starting Operation</label>
+            <input type="text" id="startingOp" value="EexSq499914209" class="w-full px-3 py-2 text-sm font-mono bg-slate-900 border border-slate-700 rounded-xl text-slate-200">
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button onclick="startClusterJob()" class="flex-1 py-3 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition">START CLUSTER COMPUTE</button>
+          <button onclick="stopClusterJob()" class="px-6 py-3 text-xs font-bold text-rose-200 bg-rose-950/80 border border-rose-800 hover:bg-rose-900 rounded-xl transition">STOP ALL</button>
+        </div>
+      </div>
+
+      <!-- Cluster Telemetry Stats -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <div class="text-xs text-slate-400 font-medium">Active Worker Nodes</div>
+          <div id="statWorkers" class="text-2xl font-bold font-mono text-blue-400 mt-1">0</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <div class="text-xs text-slate-400 font-medium">Combined Cluster Generated</div>
+          <div id="statTotalGen" class="text-2xl font-bold font-mono text-emerald-400 mt-1">0</div>
+        </div>
+        <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
+          <div class="text-xs text-slate-400 font-medium">Combined Cluster Speed</div>
+          <div id="statSpeed" class="text-2xl font-bold font-mono text-amber-400 mt-1">0 /s</div>
+        </div>
+      </div>
+
+      <!-- Connected Workers List -->
+      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-4">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wide">Connected Worker Telemetry</h3>
+        <div id="workersList" class="space-y-2">
+          <div class="text-xs text-slate-500 italic p-4 text-center bg-slate-900/50 rounded-xl border border-slate-700/40">No compute worker phones connected yet. Open this page on Phone 2 and select "Worker Compute Phone".</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WORKER NODE VIEW -->
+    <div id="workerView" class="space-y-6 hidden">
+      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wide">Worker Compute Node</h2>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Worker Node Name / Phone ID</label>
+          <input type="text" id="workerName" value="Phone Worker 2" class="w-full px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-xl text-slate-200">
+        </div>
+        <button onclick="registerAsWorker()" class="w-full py-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition">REGISTER AS COMPUTE WORKER</button>
+      </div>
+
+      <!-- Worker Shard Status -->
+      <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-4">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wide">Assigned Shard & Crunch Status</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
+            <div class="text-xs text-slate-400">Shard Range</div>
+            <div id="workerRange" class="text-sm font-mono font-bold text-blue-400 mt-0.5">—</div>
+          </div>
+          <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
+            <div class="text-xs text-slate-400">Compute Speed</div>
+            <div id="workerSpeed" class="text-sm font-mono font-bold text-amber-400 mt-0.5">0 /s</div>
+          </div>
+        </div>
+        <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/60">
+          <div class="text-xs text-slate-400">Shard Progress</div>
+          <div id="workerProgress" class="text-lg font-mono font-bold text-emerald-400 mt-1">0 generated</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws = null;
+    let currentMode = 'master';
+    let isComputing = false;
+    let computeInterval = null;
+
+    function setMode(mode) {
+      currentMode = mode;
+      if (mode === 'master') {
+        document.getElementById('masterView').classList.remove('hidden');
+        document.getElementById('workerView').classList.add('hidden');
+        document.getElementById('btnMaster').className = 'px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-xl shadow-md transition';
+        document.getElementById('btnWorker').className = 'px-4 py-2 text-xs font-bold bg-slate-700 text-slate-300 rounded-xl hover:bg-slate-600 transition';
+      } else {
+        document.getElementById('masterView').classList.add('hidden');
+        document.getElementById('workerView').classList.remove('hidden');
+        document.getElementById('btnWorker').className = 'px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-xl shadow-md transition';
+        document.getElementById('btnMaster').className = 'px-4 py-2 text-xs font-bold bg-slate-700 text-slate-300 rounded-xl hover:bg-slate-600 transition';
+      }
+    }
+
+    function connectWs() {
+      const url = document.getElementById('serverUrl').value;
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        const badge = document.getElementById('connStatus');
+        badge.className = 'px-3 py-1.5 text-xs font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 rounded-xl';
+        badge.textContent = 'Connected';
+        if (currentMode === 'worker') {
+          registerAsWorker();
+        }
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'CLUSTER_STATE' && currentMode === 'master') {
+          updateMasterDashboard(msg);
+        } else if (msg.type === 'ASSIGN_SHARD' && currentMode === 'worker') {
+          startWorkerCompute(msg);
+        } else if (msg.type === 'STOP' && currentMode === 'worker') {
+          stopWorkerCompute();
+        }
+      };
+
+      ws.onclose = () => {
+        const badge = document.getElementById('connStatus');
+        badge.className = 'px-3 py-1.5 text-xs font-semibold bg-rose-950/80 text-rose-400 border border-rose-800/60 rounded-xl';
+        badge.textContent = 'Disconnected';
+      };
+    }
+
+    function registerAsWorker() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const name = document.getElementById('workerName').value;
+      ws.send(JSON.stringify({ type: 'REGISTER_WORKER', name }));
+      alert('Registered as worker successfully!');
+    }
+
+    function startClusterJob() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const targetTotal = parseInt(document.getElementById('targetTotal').value, 10) || 1000000000;
+      const startingHn = document.getElementById('startingHn').value || 'L4A';
+      const startingOp = document.getElementById('startingOp').value || 'EexSq499914209';
+      ws.send(JSON.stringify({ type: 'START_JOB', targetTotal, startingHn, startingOp }));
+    }
+
+    function stopClusterJob() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: 'STOP_JOB' }));
+    }
+
+    function updateMasterDashboard(msg) {
+      document.getElementById('statWorkers').textContent = msg.workers.length;
+      document.getElementById('statTotalGen').textContent = Number(msg.totalGenerated).toLocaleString();
+      document.getElementById('statSpeed').textContent = Number(msg.totalSpeed).toLocaleString() + ' /s';
+
+      const listEl = document.getElementById('workersList');
+      if (msg.workers.length === 0) {
+        listEl.innerHTML = '<div class="text-xs text-slate-500 italic p-4 text-center bg-slate-900/50 rounded-xl border border-slate-700/40">No compute worker phones connected yet.</div>';
+        return;
+      }
+
+      listEl.innerHTML = msg.workers.map(w => `
+        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 flex items-center justify-between gap-4">
+          <div>
+            <div class="text-xs font-bold text-slate-200">${w.name} (${w.id})</div>
+            <div class="text-[11px] font-mono text-slate-400 mt-0.5">Shard: ${w.shardStart.toLocaleString()} → ${w.shardEnd.toLocaleString()}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-mono font-bold text-emerald-400">${Number(w.currentGenerated).toLocaleString()}</div>
+            <div class="text-[11px] font-mono font-semibold text-amber-400">${Number(w.speed).toLocaleString()} /s</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Fast HyperNumber engine logic for worker
+    function incrementLetters(letters) {
+      const chars = letters.toUpperCase().split('');
+      let i = chars.length - 1;
+      while (i >= 0) {
+        if (chars[i] !== 'Z') {
+          chars[i] = String.fromCharCode(chars[i].charCodeAt(0) + 1);
+          return chars.join('');
+        }
+        chars[i] = 'A';
+        i -= 1;
+      }
+      return 'A' + chars.join('');
+    }
+
+    function nextHyperNumber(current) {
+      const str = String(current || '').trim();
+      const m = str.match(/^(.*?)([A-Za-z]+)$/);
+      if (!m) return 'L4B';
+      return m[1] + incrementLetters(m[2]);
+    }
+
+    function parseOperation(val) {
+      const m = String(val || '').match(/^EexSq(\d+)$/i);
+      return m ? parseInt(m[1], 10) : 499914209;
+    }
+
+    function startWorkerCompute(config) {
+      if (isComputing) return;
+      isComputing = true;
+
+      const shardStart = config.shardStart;
+      const shardEnd = config.shardEnd;
+      const startingHn = config.startingHn;
+      const startingOp = config.startingOp;
+
+      let currentSeq = shardStart;
+      let hn = startingHn;
+      let opNum = parseOperation(startingOp);
+      const OPERATION_INCREMENT = 99980000;
+
+      // Fast forward hn and opNum to shardStart - 1
+      const steps = shardStart - 1;
+      for (let i = 0; i < steps; i++) {
+        opNum += OPERATION_INCREMENT;
+        hn = nextHyperNumber(hn);
+      }
+
+      let generatedInShard = 0;
+      const targetInShard = shardEnd - shardStart + 1;
+      let lastSpeedTime = performance.now();
+      let lastSpeedCount = 0;
+      let currentSpeed = 0;
+
+      document.getElementById('workerRange').textContent = `${shardStart.toLocaleString()} → ${shardEnd.toLocaleString()}`;
+
+      computeInterval = setInterval(() => {
+        if (!isComputing || currentSeq > shardEnd) {
+          clearInterval(computeInterval);
+          isComputing = false;
+          return;
+        }
+
+        const now = performance.now();
+        const deltaMs = now - lastSpeedTime;
+        const batchSize = 100000; // 100k per tick for maximum phone CPU speed
+
+        let count = 0;
+        while (count < batchSize && currentSeq <= shardEnd) {
+          opNum += OPERATION_INCREMENT;
+          hn = nextHyperNumber(hn);
+          currentSeq++;
+          generatedInShard++;
+          count++;
+        }
+
+        if (deltaMs >= 200) {
+          const deltaCount = generatedInShard - lastSpeedCount;
+          currentSpeed = Math.round((deltaCount / deltaMs) * 1000);
+          lastSpeedTime = now;
+          lastSpeedCount = generatedInShard;
+
+          document.getElementById('workerSpeed').textContent = currentSpeed.toLocaleString() + ' /s';
+          document.getElementById('workerProgress').textContent = generatedInShard.toLocaleString() + ' generated';
+
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'HEARTBEAT',
+              generated: generatedInShard,
+              speed: currentSpeed,
+              status: currentSeq > shardEnd ? 'COMPLETED' : 'RUNNING',
+            }));
+          }
+        }
+      }, 16);
+    }
+
+    function stopWorkerCompute() {
+      if (computeInterval) clearInterval(computeInterval);
+      isComputing = false;
+      document.getElementById('workerSpeed').textContent = '0 /s';
+      document.getElementById('workerProgress').textContent = 'Stopped';
+    }
+  </script>
+</body>
+</html>
